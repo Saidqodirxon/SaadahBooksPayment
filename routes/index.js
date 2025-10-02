@@ -6,10 +6,6 @@ const router = require('express').Router()
 
 // Click.uz webhook endpoints
 router.group('/click', route => {
-	// Yagona webhook endpoint (tavsiya etiladi)
-	route.post('/webhook', clickController.webhook)
-	
-	// Eski endpoint'lar (backward compatibility)
 	route.post('/prepare', clickController.prepare)
 	route.post('/complete', clickController.complete)
 })
