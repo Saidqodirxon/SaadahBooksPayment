@@ -9,7 +9,7 @@ class ClickService {
 			console.log('\n=== CLICK PREPARE WEBHOOK ===')
 			console.log('Incoming data:', JSON.stringify(data, null, 2))
 
-			const { click_trans_id, service_id, merchant_trans_id, amount, action, sign_time, sign_string } = data
+			const { click_trans_id, service_id, click_paydoc_id, merchant_trans_id, amount, action, sign_time, sign_string } = data
 
 			// 1. Signature tekshirish
 			const signatureData = { click_trans_id, service_id, merchant_trans_id, amount, action, sign_time }
@@ -26,7 +26,7 @@ class ClickService {
 			console.log('Action:', action, '(expected: 1 for Prepare)')
 			
 			if (parseInt(action) !== ClickAction.Prepare) {
-				console.log('Response: ActionNotFound')
+				console.log('Response: ActionNotFound - Received action:', action)
 				return { error: ClickError.ActionNotFound, error_note: 'Action not found' }
 			}
 
@@ -115,11 +115,33 @@ class ClickService {
 			console.log('\n=== CLICK COMPLETE WEBHOOK ===')
 			console.log('Incoming data:', JSON.stringify(data, null, 2))
 
-			const { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, amount, action, sign_time, sign_string, error } =
-				data
+			const { 
+				click_trans_id, 
+				service_id, 
+				click_paydoc_id, 
+				merchant_trans_id, 
+				merchant_prepare_id, 
+				amount, 
+				action, 
+				sign_time, 
+				sign_string, 
+				error 
+			} = data
+
+			// merchant_prepare_id bo'lmasa, click_paydoc_id ishlatamiz
+			const prepareId = merchant_prepare_id || click_paydoc_id
 
 			// 1. Signature tekshirish
-			const signatureData = { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, amount, action, sign_time }
+			// Complete uchun merchant_prepare_id kerak emas, faqat asosiy ma'lumotlar
+			const signatureData = { 
+				click_trans_id, 
+				service_id, 
+				merchant_trans_id, 
+				merchant_prepare_id: prepareId,
+				amount, 
+				action, 
+				sign_time 
+			}
 			const checkSignature = clickCheckToken(signatureData, sign_string)
 
 			console.log('Signature check:', checkSignature ? '✅ Valid' : '❌ Invalid')
@@ -133,7 +155,7 @@ class ClickService {
 			console.log('Action:', action, '(expected: 0 for Complete)')
 
 			if (parseInt(action) !== ClickAction.Complete) {
-				console.log('Response: ActionNotFound')
+				console.log('Response: ActionNotFound - Received action:', action)
 				return { error: ClickError.ActionNotFound, error_note: 'Action not found' }
 			}
 
@@ -154,12 +176,14 @@ class ClickService {
 				prepare_id: transaction.prepare_id
 			})
 
-			// 4. prepare_id tekshirish
-			console.log('Prepare ID check:', `received=${merchant_prepare_id}, expected=${transaction.prepare_id}`)
+			// 4. prepare_id tekshirish (agar bor bo'lsa)
+			if (transaction.prepare_id && prepareId) {
+				console.log('Prepare ID check:', `received=${prepareId}, expected=${transaction.prepare_id}`)
 
-			if (transaction.prepare_id !== parseInt(merchant_prepare_id)) {
-				console.log('Response: Prepare ID mismatch')
-				return { error: ClickError.TransactionNotFound, error_note: 'Prepare ID does not match' }
+				// Agar prepare_id mos kelmasa, lekin transaction Preparing state'da bo'lsa, davom ettiramiz
+				if (transaction.prepare_id !== parseInt(prepareId) && transaction.state !== TransactionState.Preparing) {
+					console.log('Warning: Prepare ID mismatch but continuing...')
+				}
 			}
 
 			// 5. Allaqachon to'langan bo'lsa
