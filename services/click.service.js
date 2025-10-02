@@ -287,9 +287,13 @@ class ClickService {
 				console.error('Telegram xabar yuborishda xatolik:', err)
 			}
 
+			// Response yaratish
+			const paidTransactionFinal = await transactionModel.findById(merchant_trans_id)
+			
 			const response = {
 				click_trans_id,
 				merchant_trans_id,
+				merchant_prepare_id: paidTransactionFinal.prepare_id,
 				merchant_confirm_id: time,
 				error: ClickError.Success,
 				error_note: 'Success',
