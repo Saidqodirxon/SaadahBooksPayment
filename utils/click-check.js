@@ -1,38 +1,22 @@
 const md5 = require('md5')
 
 const clickCheckToken = (data, signString) => {
-	const { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, click_paydoc_id, amount, action, sign_time } = data
+	const { click_trans_id, service_id, merchant_trans_id, amount, action, sign_time } = data
 	const CLICK_SECRET_KEY = process.env.CLICK_SECRET_KEY
 	
-	let signature
-	let prepareId = ''
+	// Click.uz signature formulasi (hamma action'lar uchun bir xil):
+	// click_trans_id + service_id + secret_key + merchant_trans_id + amount + action + sign_time
+	// merchant_prepare_id va click_paydoc_id ishlatilmaydi!
 	
-	// Action'ga qarab signature formulasi boshqacha
-	if (parseInt(action) === 1) {
-		// PREPARE: click_trans_id + service_id + secret_key + merchant_trans_id + amount + action + sign_time
-		// Prepare'da merchant_prepare_id YO'Q!
-		signature = `${click_trans_id}${service_id}${CLICK_SECRET_KEY}${merchant_trans_id}${amount}${action}${sign_time}`
-		console.log('🔐 Signature Check (PREPARE):')
-	} else if (parseInt(action) === 0) {
-		// COMPLETE: click_trans_id + service_id + secret_key + merchant_trans_id + merchant_prepare_id + amount + action + sign_time
-		// Complete'da merchant_prepare_id BOR!
-		prepareId = merchant_prepare_id || click_paydoc_id || ''
-		signature = `${click_trans_id}${service_id}${CLICK_SECRET_KEY}${merchant_trans_id}${prepareId}${amount}${action}${sign_time}`
-		console.log('🔐 Signature Check (COMPLETE):')
-	} else {
-		signature = `${click_trans_id}${service_id}${CLICK_SECRET_KEY}${merchant_trans_id}${amount}${action}${sign_time}`
-		console.log('🔐 Signature Check (UNKNOWN ACTION):')
-	}
-	
+	const signature = `${click_trans_id}${service_id}${CLICK_SECRET_KEY}${merchant_trans_id}${amount}${action}${sign_time}`
 	const signatureHash = md5(signature)
 	
 	// Debug logging
+	console.log('🔐 Signature Check:')
 	console.log('  click_trans_id:', click_trans_id)
 	console.log('  service_id:', service_id)
+	console.log('  secret_key:', CLICK_SECRET_KEY)
 	console.log('  merchant_trans_id:', merchant_trans_id)
-	if (parseInt(action) === 0) {
-		console.log('  prepareId (merchant_prepare_id || click_paydoc_id):', prepareId)
-	}
 	console.log('  amount:', amount)
 	console.log('  action:', action)
 	console.log('  sign_time:', sign_time)

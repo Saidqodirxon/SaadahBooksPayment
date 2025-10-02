@@ -128,17 +128,15 @@ class ClickService {
 				error 
 			} = data
 
-			// merchant_prepare_id bo'lmasa, click_paydoc_id ishlatamiz
+			// merchant_prepare_id bo'lmasa, click_paydoc_id ishlatamiz (transaction topish uchun)
 			const prepareId = merchant_prepare_id || click_paydoc_id
 
 			// 1. Signature tekshirish
-			// Complete uchun merchant_prepare_id yoki click_paydoc_id ishlatiladi
+			// Signature'da faqat asosiy fieldlar ishlatiladi (merchant_prepare_id va click_paydoc_id YO'Q)
 			const signatureData = { 
 				click_trans_id, 
 				service_id, 
 				merchant_trans_id, 
-				merchant_prepare_id,
-				click_paydoc_id,
 				amount, 
 				action, 
 				sign_time 
