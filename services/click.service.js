@@ -107,19 +107,47 @@ class ClickService {
 			return { error: ClickError.ActionNotFound, error_note: 'Action not found' }
 		}
 
-		// 3. Check if prepared
-		const isPrepared = await transactionModel.findOne({ 
-			_id: merchant_trans_id,
-			prepare_id: merchant_prepare_id, 
-			provider: 'click' 
-		})
+		// 3. Transaction topish
+		const transaction = await transactionModel.findById(merchant_trans_id)
 		
-		if (!isPrepared) {
-			console.log('❌ Not prepared')
+		if (!transaction) {
+			console.log('❌ Transaction not found')
 			return { error: ClickError.TransactionNotFound, error_note: 'Transaction not found' }
 		}
 
-		// 4. Check if already paid
+		console.log('Transaction state:', transaction.state, '- prepare_id:', transaction.prepare_id)
+
+		// 4. Agar transaction Pending bo'lsa (Prepare kelmagan), auto-prepare qilamiz
+		if (transaction.state === TransactionState.Pending || !transaction.prepare_id) {
+			console.log('⚠️  Transaction not prepared, auto-preparing...')
+			
+			const prepareTime = new Date().getTime()
+			const prepareIdValue = merchant_prepare_id || prepareTime
+			
+			await transactionModel.findByIdAndUpdate(merchant_trans_id, {
+				state: TransactionState.Preparing,
+				prepare_id: prepareIdValue,
+				create_time: prepareTime,
+			})
+			
+			console.log('✅ Auto-prepared, prepare_id:', prepareIdValue)
+			
+			// Telegram prepare notification
+			try {
+				const preparedTx = await transactionModel.findById(merchant_trans_id)
+				const items = preparedTx.items || []
+				await telegramService.sendPaymentPrepareNotification(preparedTx, items)
+				console.log('📱 Telegram prepare sent')
+			} catch (err) {
+				console.error('Telegram error:', err.message)
+			}
+			
+			// Update local transaction object
+			transaction.state = TransactionState.Preparing
+			transaction.prepare_id = prepareIdValue
+		}
+
+		// 5. Check if already paid
 		const isAlreadyPaid = await transactionModel.findOne({ 
 			_id: merchant_trans_id,
 			state: TransactionState.Paid, 
@@ -127,28 +155,26 @@ class ClickService {
 		})
 		
 		if (isAlreadyPaid) {
-			console.log('❌ Already paid')
+			console.log('⚠️  Already paid')
 			return {
 				click_trans_id,
 				merchant_trans_id,
-				merchant_prepare_id,
+				merchant_prepare_id: transaction.prepare_id,
 				merchant_confirm_id: isAlreadyPaid.perform_time,
 				error: ClickError.AlreadyPaid,
 				error_note: 'Already paid'
 			}
 		}
 
-		// 5. Check if canceled
-		const transaction = await transactionModel.findById(merchant_trans_id)
-		
-		if (transaction && transaction.state === TransactionState.Canceled) {
+		// 6. Check if canceled
+		if (transaction.state === TransactionState.Canceled) {
 			console.log('❌ Transaction canceled')
 			return { error: ClickError.TransactionCanceled, error_note: 'Transaction canceled' }
 		}
 
 		const time = new Date().getTime()
 
-		// 6. If Click.uz error
+		// 7. If Click.uz error
 		if (parseInt(error) < 0) {
 			console.log('❌ Click.uz error:', error)
 			
@@ -200,7 +226,7 @@ class ClickService {
 		return {
 			click_trans_id,
 			merchant_trans_id,
-			merchant_prepare_id,
+			merchant_prepare_id: transaction.prepare_id,
 			merchant_confirm_id: time,
 			error: ClickError.Success,
 			error_note: 'Success',
