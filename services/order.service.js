@@ -33,15 +33,37 @@ class OrderService {
 				create_time: Date.now(),
 			})
 
+			// Click.uz to'lov URL'ini yaratish
+			const clickUrl = this.generateClickUrl(transaction._id, totalAmount)
+
 			return {
 				success: true,
-				transaction,
-				totalAmount,
+				orderId: transaction._id,
+				amount: totalAmount,
+				click_url: clickUrl,
 			}
 		} catch (error) {
 			console.error('Buyurtma yaratishda xatolik:', error)
 			throw error
 		}
+	}
+
+	// Click.uz to'lov URL'ini yaratish
+	generateClickUrl(orderId, amount) {
+		const serviceId = process.env.CLICK_SERVICE_ID
+		const merchantId = process.env.CLICK_MERCHANT_ID
+		const returnUrl = `${process.env.CLIENT_URL}/payment/success`
+		const clickCheckoutLink = process.env.CLICK_CHECKOUT_LINK || 'https://my.click.uz'
+
+		const params = new URLSearchParams({
+			service_id: serviceId,
+			merchant_id: merchantId,
+			amount: amount,
+			transaction_param: orderId,
+			return_url: returnUrl,
+		})
+
+		return `${clickCheckoutLink}/services/pay?${params.toString()}`
 	}
 
 	// Buyurtma ma'lumotlarini olish
