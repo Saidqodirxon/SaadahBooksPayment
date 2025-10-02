@@ -132,11 +132,12 @@ class ClickService {
 			const prepareId = merchant_prepare_id || click_paydoc_id
 
 			// 1. Signature tekshirish
-			// Signature'da faqat asosiy fieldlar ishlatiladi (merchant_prepare_id va click_paydoc_id YO'Q)
+			// Complete uchun merchant_prepare_id signature'da BOR
 			const signatureData = { 
 				click_trans_id, 
 				service_id, 
-				merchant_trans_id, 
+				merchant_trans_id,
+				merchant_prepare_id: prepareId,
 				amount, 
 				action, 
 				sign_time 
