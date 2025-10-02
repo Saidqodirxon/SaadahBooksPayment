@@ -26,8 +26,27 @@ router.post('/create', async (req, res, next) => {
 			prepare_id: `prepare_${Date.now()}`
 		})
 
+		// ✅ MUHIM: return_url qo'shildi
+		// Click.uz to'lovdan keyin bu URLga qaytaradi
+		const serverUrl = process.env.SERVER_URL || 'http://localhost:5000'
+		const returnUrl = `${serverUrl}/payment/success`
+
 		// Click.uz to'lov URL yaratish
-		const clickPaymentUrl = `https://my.click.uz/services/pay?service_id=${process.env.CLICK_SERVICE_ID}&merchant_id=${process.env.CLICK_MERCHANT_ID}&merchant_user_id=${process.env.CLICK_MERCHANT_USER_ID}&amount=${amount}&transaction_param=${transaction._id}`
+		const clickPaymentUrl =
+			`https://my.click.uz/services/pay?` +
+			`service_id=${process.env.CLICK_SERVICE_ID}` +
+			`&merchant_id=${process.env.CLICK_MERCHANT_ID}` +
+			`&merchant_user_id=${process.env.CLICK_MERCHANT_USER_ID}` +
+			`&amount=${amount}` +
+			`&transaction_param=${transaction._id}` +
+			`&return_url=${encodeURIComponent(returnUrl)}`
+
+		// Debug log (production da o'chirish mumkin)
+		console.log('💳 Click.uz payment URL yaratildi:', {
+			transactionId: transaction._id,
+			amount,
+			returnUrl
+		})
 
 		res.json({
 			success: true,
@@ -36,6 +55,7 @@ router.post('/create', async (req, res, next) => {
 			amount: amount
 		})
 	} catch (error) {
+		console.error('❌ Payment create error:', error)
 		next(error)
 	}
 })
@@ -71,6 +91,7 @@ router.get('/status/:transactionId', async (req, res, next) => {
 			provider: transaction.provider
 		})
 	} catch (error) {
+		console.error('❌ Status check error:', error)
 		next(error)
 	}
 })
@@ -82,7 +103,7 @@ router.get('/history', async (req, res, next) => {
 
 		const transactions = await transactionModel
 			.find({ provider: 'click' })
-			.sort({ createdAt: -1 })
+			.sort({ create_time: -1 })  // ✅ create_time bo'yicha sort
 			.limit(limit * 1)
 			.skip((page - 1) * limit)
 
@@ -115,24 +136,40 @@ router.get('/history', async (req, res, next) => {
 			}
 		})
 	} catch (error) {
+		console.error('❌ History error:', error)
 		next(error)
 	}
 })
 
-// To'lov muvaffaqiyatli yakunlanganda
+// ✅ TO'G'RILANGAN: To'lov muvaffaqiyatli yakunlanganda
+// Frontend /payment/success sahifasiga redirect qiladi
 router.get('/success', async (req, res) => {
 	const { transaction_param } = req.query
 
-	// Frontend success page-ga redirect
-	res.redirect(`${process.env.CLIENT_URL}/checkout/success?transaction_id=${transaction_param}`)
+	console.log('✅ Payment success redirect:', {
+		transactionId: transaction_param,
+		clientUrl: process.env.CLIENT_URL
+	})
+
+	// ✅ TO'G'RI: /payment/success (eski: /checkout/success)
+	// ✅ TO'G'RI: transaction_param (eski: transaction_id)
+	res.redirect(`${process.env.CLIENT_URL}/payment/success?transaction_param=${transaction_param}`)
 })
 
-// To'lov muvaffaqiyatsiz yakunlanganda
+// ✅ TO'G'RILANGAN: To'lov muvaffaqiyatsiz yakunlanganda
+// Frontend /payment/failure sahifasiga redirect qiladi
 router.get('/failure', async (req, res) => {
 	const { transaction_param, error } = req.query
 
-	// Frontend failure page-ga redirect
-	res.redirect(`${process.env.CLIENT_URL}/checkout/failure?transaction_id=${transaction_param}&error=${error}`)
+	console.log('❌ Payment failure redirect:', {
+		transactionId: transaction_param,
+		error: error || 'Payment cancelled',
+		clientUrl: process.env.CLIENT_URL
+	})
+
+	// ✅ TO'G'RI: /payment/failure (eski: /checkout/failure)
+	// ✅ TO'G'RI: transaction_param (eski: transaction_id)
+	res.redirect(`${process.env.CLIENT_URL}/payment/failure?transaction_param=${transaction_param}&error=${encodeURIComponent(error || 'Payment cancelled')}`)
 })
 
 module.exports = router
