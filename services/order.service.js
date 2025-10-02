@@ -75,7 +75,43 @@ class OrderService {
 				throw new Error('Buyurtma topilmadi')
 			}
 
-			return transaction
+			// Items statistikasi
+			const totalBooks = transaction.items.reduce((sum, item) => sum + item.qty, 0)
+			const itemsWithTotal = transaction.items.map(item => ({
+				...item,
+				totalPrice: item.qty * item.price
+			}))
+
+			// State nomi
+			const stateNames = {
+				0: 'Pending',
+				1: 'Preparing',
+				2: 'Paid',
+				'-1': 'Canceled',
+				'-2': 'PaidCanceled'
+			}
+
+			// Response
+			return {
+				success: true,
+				order: {
+					orderId: transaction._id,
+					customerName: transaction.customerName,
+					customerEmail: transaction.customerEmail,
+					customerPhone: transaction.customerPhone,
+					amount: transaction.amount,
+					state: transaction.state,
+					stateName: stateNames[transaction.state] || 'Unknown',
+					isPaid: transaction.state === 2,
+					items: itemsWithTotal,
+					totalBooks: totalBooks,
+					provider: transaction.provider,
+					create_time: transaction.create_time,
+					perform_time: transaction.perform_time,
+					cancel_time: transaction.cancel_time,
+					prepare_id: transaction.prepare_id
+				}
+			}
 		} catch (error) {
 			console.error('Buyurtma olishda xatolik:', error)
 			throw error
