@@ -132,12 +132,11 @@ class ClickService {
 			const prepareId = merchant_prepare_id || click_paydoc_id
 
 			// 1. Signature tekshirish
-			// Complete uchun merchant_prepare_id signature'da BOR
+			// MUHIM: Signature'da merchant_prepare_id va click_paydoc_id ISHLATILMAYDI!
 			const signatureData = { 
 				click_trans_id, 
 				service_id, 
 				merchant_trans_id,
-				merchant_prepare_id: prepareId,
 				amount, 
 				action, 
 				sign_time 
