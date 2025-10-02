@@ -194,7 +194,8 @@ class ClickService {
 				// Telegram'ga prepare xabari
 				try {
 					const preparedTransaction = await transactionModel.findById(merchant_trans_id)
-					await telegramService.sendPaymentPrepareNotification(preparedTransaction)
+					const items = preparedTransaction.items || []
+					await telegramService.sendPaymentPrepareNotification(preparedTransaction, items)
 					console.log('📱 Telegram prepare notification sent')
 				} catch (err) {
 					console.error('Telegram prepare notification error:', err.message)
@@ -207,10 +208,13 @@ class ClickService {
 
 			// 5. prepare_id tekshirish (agar bor bo'lsa)
 			if (transaction.prepare_id && prepareId) {
-				console.log('Prepare ID check:', `received=${prepareId}, expected=${transaction.prepare_id}`)
+				const receivedId = parseInt(prepareId)
+				const expectedId = parseInt(transaction.prepare_id)
+				
+				console.log('Prepare ID check:', `received=${receivedId}, expected=${expectedId}`)
 
 				// Agar prepare_id mos kelmasa, warning chiqaramiz lekin davom ettiramiz
-				if (transaction.prepare_id !== parseInt(prepareId)) {
+				if (receivedId !== expectedId) {
 					console.log('⚠️  Prepare ID mismatch but continuing...')
 				}
 			}
