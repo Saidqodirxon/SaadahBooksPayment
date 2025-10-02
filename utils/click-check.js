@@ -1,26 +1,17 @@
 const md5 = require('md5')
 
 const clickCheckToken = (data, signString) => {
-	const { click_trans_id, service_id, merchant_trans_id, amount, action, sign_time } = data
+	const { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, amount, action, sign_time } = data
 	const CLICK_SECRET_KEY = process.env.CLICK_SECRET_KEY
-	
-	// Click.uz signature formulasi (HAMMA ACTION'LAR UCHUN BIR XIL):
-	// merchant_prepare_id va click_paydoc_id ISHLATILMAYDI!
-	const signature = `${click_trans_id}${service_id}${CLICK_SECRET_KEY}${merchant_trans_id}${amount}${action}${sign_time}`
+	const prepareId = merchant_prepare_id || ''
+	const signature = `${click_trans_id}${service_id}${CLICK_SECRET_KEY}${merchant_trans_id}${prepareId}${amount}${action}${sign_time}`
 	const signatureHash = md5(signature)
 	
-	// Debug logging
 	console.log('🔐 Signature Check:')
-	console.log('  click_trans_id:', click_trans_id)
-	console.log('  service_id:', service_id)
-	console.log('  secret_key:', CLICK_SECRET_KEY)
-	console.log('  merchant_trans_id:', merchant_trans_id)
-	console.log('  amount:', amount)
-	console.log('  action:', action)
-	console.log('  sign_time:', sign_time)
-	console.log('  Signature string:', signature)
-	console.log('  Generated MD5:', signatureHash)
-	console.log('  Expected MD5:', signString)
+	console.log('  Formula: click_trans_id + service_id + secret + merchant_trans_id + prepare_id + amount + action + sign_time')
+	console.log('  String:', signature)
+	console.log('  Generated:', signatureHash)
+	console.log('  Expected:', signString)
 	console.log('  Match:', signatureHash === signString ? '✅' : '❌')
 	
 	return signatureHash === signString
