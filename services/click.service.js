@@ -175,20 +175,43 @@ class ClickService {
 				prepare_id: transaction.prepare_id
 			})
 
-			// 4. Transaction Preparing state'da bo'lishi kerak
-			// Agar Pending (0) bo'lsa, Prepare webhook hali kelmagan
+			// 4. Agar transaction Pending bo'lsa, avval Prepare'ni bajaramiz
+			// Click.uz ba'zan faqat Complete yuboradi, Prepare yubormasligi mumkin
 			if (transaction.state === TransactionState.Pending) {
-				console.log('❌ Transaction not prepared yet (state is Pending)')
-				return { error: ClickError.TransactionNotFound, error_note: 'Transaction not prepared' }
+				console.log('⚠️  Transaction is Pending, auto-preparing before complete...')
+				
+				const prepareTime = new Date().getTime()
+				
+				// Transaction'ni Preparing state'ga o'tkazamiz
+				await transactionModel.findByIdAndUpdate(merchant_trans_id, {
+					state: TransactionState.Preparing,
+					prepare_id: parseInt(click_paydoc_id) || prepareTime,
+					create_time: prepareTime
+				})
+				
+				console.log('✅ Auto-prepare successful, prepare_id:', parseInt(click_paydoc_id) || prepareTime)
+				
+				// Telegram'ga prepare xabari
+				try {
+					const preparedTransaction = await transactionModel.findById(merchant_trans_id)
+					await telegramService.sendPaymentPrepareNotification(preparedTransaction)
+					console.log('📱 Telegram prepare notification sent')
+				} catch (err) {
+					console.error('Telegram prepare notification error:', err.message)
+				}
+				
+				// Transaction'ni qayta yuklaymiz yangi state bilan
+				transaction.state = TransactionState.Preparing
+				transaction.prepare_id = parseInt(click_paydoc_id) || prepareTime
 			}
 
 			// 5. prepare_id tekshirish (agar bor bo'lsa)
 			if (transaction.prepare_id && prepareId) {
 				console.log('Prepare ID check:', `received=${prepareId}, expected=${transaction.prepare_id}`)
 
-				// Agar prepare_id mos kelmasa, lekin transaction Preparing state'da bo'lsa, davom ettiramiz
-				if (transaction.prepare_id !== parseInt(prepareId) && transaction.state !== TransactionState.Preparing) {
-					console.log('Warning: Prepare ID mismatch but continuing...')
+				// Agar prepare_id mos kelmasa, warning chiqaramiz lekin davom ettiramiz
+				if (transaction.prepare_id !== parseInt(prepareId)) {
+					console.log('⚠️  Prepare ID mismatch but continuing...')
 				}
 			}
 
