@@ -8,10 +8,10 @@ class ClickService {
 		console.log('\n=== CLICK PREPARE ===')
 		console.log('Data:', JSON.stringify(data, null, 2))
 
-		const { click_trans_id, service_id, merchant_trans_id, amount, action, sign_time, sign_string } = data
+		const { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, amount, action, sign_time, sign_string } = data
 
 		// 1. Signature check
-		const signatureData = { click_trans_id, service_id, merchant_trans_id, amount, action, sign_time }
+		const signatureData = { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, amount, action, sign_time }
 		const checkSignature = clickCheckToken(signatureData, sign_string)
 		
 		if (!checkSignature) {
