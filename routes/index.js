@@ -18,4 +18,11 @@ router.group('/orders', route => {
 	route.get('/:orderId', orderController.getOrder)
 })
 
+// Payment endpoint (frontend uchun)
+router.group('/payments', route => {
+	route.post('/create', orderController.createOrder)
+	route.get('/:orderId', orderController.getOrder)
+	route.get('/', orderController.getAllOrders)
+})
+
 module.exports = router
