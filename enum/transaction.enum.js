@@ -11,13 +11,14 @@ exports.ClickError = {
 }
 
 exports.ClickAction = {
-	Prepare: 0,
-	Complete: 1,
+	Complete: 0,
+	Prepare: 1,
 }
 
 exports.TransactionState = {
 	Paid: 2,
-	Pending: 1,
-	PendingCanceled: -1,
+	Preparing: 1,
+	Pending: 0,
+	Canceled: -1,
 	PaidCanceled: -2,
 }

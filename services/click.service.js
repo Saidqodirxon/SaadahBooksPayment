@@ -18,38 +18,48 @@ class ClickService {
 			return { error: ClickError.ActionNotFound, error_note: 'Action not found' }
 		}
 
-		const isAlreadyPaid = await transactionModel.findOne({
-			id: click_trans_id,
-			state: TransactionState.Paid,
-			provider: 'click',
-		})
+		// merchant_trans_id orqali transaction topish (Frontend yaratgan)
+		const transaction = await transactionModel.findById(merchant_trans_id)
+		
+		if (!transaction) {
+			return { error: ClickError.TransactionNotFound, error_note: 'Transaction not found' }
+		}
 
-		if (isAlreadyPaid) {
+		// Allaqachon to'langan bo'lsa
+		if (transaction.state === TransactionState.Paid) {
 			return { error: ClickError.AlreadyPaid, error_note: 'Already paid' }
 		}
 
-		const transaction = await transactionModel.findOne({ id: click_trans_id })
-		if (transaction && transaction.state === TransactionState.Canceled) {
+		// Bekor qilingan bo'lsa
+		if (transaction.state === TransactionState.Canceled) {
 			return { error: ClickError.TransactionCanceled, error_note: 'Transaction canceled' }
+		}
+
+		// Summani tekshirish
+		if (parseInt(amount) !== transaction.amount) {
+			return { error: ClickError.InvalidAmount, error_note: 'Invalid amount' }
 		}
 
 		const time = new Date().getTime()
 
-		const newTransaction = await transactionModel.create({
+		// Transaction'ni yangilash - Click ma'lumotlarini qo'shish
+		await transactionModel.findByIdAndUpdate(merchant_trans_id, {
 			id: click_trans_id,
-			state: TransactionState.Pending,
-			create_time: time,
-			amount,
+			state: TransactionState.Preparing,
 			prepare_id: time,
-			provider: 'click',
 		})
+
+		// Yangilangan transactionni olish
+		const updatedTransaction = await transactionModel.findById(merchant_trans_id)
 
 		// Telegram botga xabar yuborish
 		try {
-			await telegramService.sendPaymentPrepareNotification(transaction, transaction.items)
+			await telegramService.sendPaymentPrepareNotification(updatedTransaction, updatedTransaction.items)
 		} catch (error) {
 			console.error('Telegram xabar yuborishda xatolik:', error.message)
-		}		return {
+		}
+
+		return {
 			click_trans_id,
 			merchant_trans_id,
 			merchant_prepare_id: time,
@@ -74,42 +84,57 @@ class ClickService {
 			return { error: ClickError.ActionNotFound, error_note: 'Action not found' }
 		}
 
-		const isPrepared = await transactionModel.findOne({ prepare_id: merchant_prepare_id, provider: 'click' })
-		if (!isPrepared) {
+		// merchant_trans_id orqali transaction topish
+		const transaction = await transactionModel.findById(merchant_trans_id)
+		
+		if (!transaction) {
 			return { error: ClickError.TransactionNotFound, error_note: 'Transaction not found' }
 		}
 
-		const isAlreadyPaid = await transactionModel.findOne({ id: click_trans_id, state: TransactionState.Paid, provider: 'click' })
-		if (isAlreadyPaid) {
+		// prepare_id tekshirish
+		if (transaction.prepare_id !== parseInt(merchant_prepare_id)) {
+			return { error: ClickError.TransactionNotFound, error_note: 'Prepare ID does not match' }
+		}
+
+		// Allaqachon to'langan bo'lsa
+		if (transaction.state === TransactionState.Paid) {
 			return { error: ClickError.AlreadyPaid, error_note: 'Already paid' }
 		}
 
-		const transaction = await transactionModel.findOne({ id: click_trans_id })
-		if (transaction && transaction.state === TransactionState.Canceled) {
+		// Bekor qilingan bo'lsa
+		if (transaction.state === TransactionState.Canceled) {
 			return { error: ClickError.TransactionCanceled, error_note: 'Transaction canceled' }
 		}
 
 		const time = new Date().getTime()
 
+		// Agar Click.uz dan error kelsa - bekor qilish
 		if (error < 0) {
-			await transactionModel.findOneAndUpdate({ id: click_trans_id }, { state: TransactionState.Canceled, cancel_time: time })
-			
+			await transactionModel.findByIdAndUpdate(merchant_trans_id, {
+				state: TransactionState.Canceled,
+				cancel_time: time,
+			})
+
 			// Telegram'ga bekor qilish xabari
 			try {
-				const canceledTransaction = await transactionModel.findOne({ id: click_trans_id })
+				const canceledTransaction = await transactionModel.findById(merchant_trans_id)
 				await telegramService.sendPaymentCanceledNotification(canceledTransaction)
 			} catch (err) {
 				console.error('Telegram xabar yuborishda xatolik:', err)
 			}
-			
-			return { error: ClickError.TransactionNotFound, error_note: 'Transaction not found' }
+
+			return { error: ClickError.TransactionCanceled, error_note: 'Transaction canceled by user' }
 		}
 
-		await transactionModel.findOneAndUpdate({ id: click_trans_id }, { state: TransactionState.Paid, perform_time: time })
+		// To'lovni tasdiqlash
+		await transactionModel.findByIdAndUpdate(merchant_trans_id, {
+			state: TransactionState.Paid,
+			perform_time: time,
+		})
 
 		// Telegram'ga muvaffaqiyatli to'lov xabari
 		try {
-			const paidTransaction = await transactionModel.findOne({ id: click_trans_id })
+			const paidTransaction = await transactionModel.findById(merchant_trans_id)
 			const items = paidTransaction.items || []
 			await telegramService.sendPaymentNotification(paidTransaction, items)
 		} catch (err) {
