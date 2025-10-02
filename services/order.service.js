@@ -63,7 +63,8 @@ class OrderService {
 		const merchantId = process.env.CLICK_MERCHANT_ID || '46304'
 		const returnUrl = process.env.CLIENT_URL || 'https://saadahbooks.uz'
 
-		return `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${merchantId}&amount=${amount}&transaction_param=${orderId}&return_url=${returnUrl}/payment/success`
+		// Return URL'ga orderId (MongoDB _id) qo'shamiz
+		return `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${merchantId}&amount=${amount}&transaction_param=${orderId}&return_url=${returnUrl}/payment/success?orderId=${orderId}`
 	}
 
 	// Buyurtma ma'lumotlarini olish (MongoDB _id yoki click_trans_id bilan)
