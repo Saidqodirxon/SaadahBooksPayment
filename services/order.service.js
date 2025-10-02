@@ -66,10 +66,18 @@ class OrderService {
 		return `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${merchantId}&amount=${amount}&transaction_param=${orderId}&return_url=${returnUrl}/payment/success`
 	}
 
-	// Buyurtma ma'lumotlarini olish
+	// Buyurtma ma'lumotlarini olish (MongoDB _id yoki click_trans_id bilan)
 	async getOrderById(orderId) {
 		try {
-			const transaction = await transactionModel.findById(orderId)
+			let transaction
+			
+			// MongoDB _id formatida bo'lsa (24 characters hex)
+			if (orderId.match(/^[0-9a-fA-F]{24}$/)) {
+				transaction = await transactionModel.findById(orderId)
+			} else {
+				// click_trans_id (raqam) bo'lsa
+				transaction = await transactionModel.findOne({ id: orderId })
+			}
 
 			if (!transaction) {
 				throw new Error('Buyurtma topilmadi')
@@ -96,6 +104,7 @@ class OrderService {
 				success: true,
 				order: {
 					orderId: transaction._id,
+					clickTransId: transaction.id,
 					customerName: transaction.customerName,
 					customerEmail: transaction.customerEmail,
 					customerPhone: transaction.customerPhone,
