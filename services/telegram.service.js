@@ -99,6 +99,37 @@ ${itemsList}
 		return await this.sendMessage(message)
 	}
 
+	// Order yaratilganda xabar
+	async sendOrderCreatedNotification(transaction, items) {
+		const itemsList = items
+			.map(
+				(item, i) =>
+					`${i + 1}. ${item.title}${item.author ? ` (${item.author})` : ''}\n   ${item.qty} ta × ${item.price.toLocaleString()} = ${(item.qty * item.price).toLocaleString()} so'm`
+			)
+			.join('\n')
+
+		const totalItems = items.reduce((sum, item) => sum + item.qty, 0)
+
+		const message = `
+🛒 <b>Yangi buyurtma yaratildi!</b>
+
+💳 <b>Order ID:</b> ${transaction._id}
+💰 <b>Summa:</b> ${transaction.amount.toLocaleString()} so'm
+
+👤 <b>Mijoz:</b> ${transaction.customerName}
+📧 <b>Email:</b> ${transaction.customerEmail}
+📱 <b>Telefon:</b> ${transaction.customerPhone}
+
+📚 <b>Tanlangan kitoblar (${totalItems} ta):</b>
+${itemsList}
+
+⏰ <b>To'lov kutilmoqda...</b>
+🔗 <b>Provider:</b> Click.uz
+		`
+
+		return await this.sendMessage(message)
+	}
+
 	// Kunlik hisobot
 	async sendDailyReport(stats) {
 		const message = `

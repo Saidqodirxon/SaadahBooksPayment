@@ -1,4 +1,5 @@
 const transactionModel = require('../models/transaction.model')
+const telegramService = require('./telegram.service')
 
 class OrderService {
 	// Yangi buyurtma yaratish
@@ -32,6 +33,14 @@ class OrderService {
 				provider: 'click',
 				create_time: Date.now(),
 			})
+
+			// Telegram'ga order yaratildi xabari
+			try {
+				await telegramService.sendOrderCreatedNotification(transaction, items)
+				console.log('📱 Telegram order created notification sent')
+			} catch (err) {
+				console.error('Telegram notification error:', err.message)
+			}
 
 			// Click.uz to'lov URL'ini yaratish
 			const clickUrl = this.generateClickUrl(transaction._id, totalAmount)
