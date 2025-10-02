@@ -1,5 +1,4 @@
 const transactionModel = require('../models/transaction.model')
-const telegramService = require('./telegram.service')
 const clickCheckToken = require('../utils/click-check')
 const { ClickError, ClickAction, TransactionState } = require('../enum/transaction.enum')
 
@@ -35,7 +34,7 @@ class ClickService {
 
 		const time = new Date().getTime()
 
-		const newTransaction = await transactionModel.create({
+		await transactionModel.create({
 			id: click_trans_id,
 			state: TransactionState.Pending,
 			create_time: time,
@@ -44,12 +43,7 @@ class ClickService {
 			provider: 'click',
 		})
 
-		// Telegram botga xabar yuborish
-		try {
-			await telegramService.sendPaymentPrepareNotification(transaction, transaction.items)
-		} catch (error) {
-			console.error('Telegram xabar yuborishda xatolik:', error.message)
-		} return {
+		return {
 			click_trans_id,
 			merchant_trans_id,
 			merchant_prepare_id: time,
@@ -93,28 +87,10 @@ class ClickService {
 
 		if (error < 0) {
 			await transactionModel.findOneAndUpdate({ id: click_trans_id }, { state: TransactionState.Canceled, cancel_time: time })
-
-			// Telegram'ga bekor qilish xabari
-			try {
-				const canceledTransaction = await transactionModel.findOne({ id: click_trans_id })
-				await telegramService.sendPaymentCanceledNotification(canceledTransaction)
-			} catch (err) {
-				console.error('Telegram xabar yuborishda xatolik:', err)
-			}
-
 			return { error: ClickError.TransactionNotFound, error_note: 'Transaction not found' }
 		}
 
 		await transactionModel.findOneAndUpdate({ id: click_trans_id }, { state: TransactionState.Paid, perform_time: time })
-
-		// Telegram'ga muvaffaqiyatli to'lov xabari
-		try {
-			const paidTransaction = await transactionModel.findOne({ id: click_trans_id })
-			const items = paidTransaction.items || []
-			await telegramService.sendPaymentNotification(paidTransaction, items)
-		} catch (err) {
-			console.error('Telegram xabar yuborishda xatolik:', err)
-		}
 
 		return {
 			click_trans_id,
