@@ -35,9 +35,31 @@ class ClickController {
 	async prepare(req, res, next) {
 		try {
 			const data = req.body
-			const result = await clickService.prepare(data)
+			const action = parseInt(data.action)
+
+			console.log('\n🔔 /prepare endpoint - Action:', action)
+
+			let result
+
+			// Click.uz /prepare URL'iga ham prepare ham complete yuboradi
+			// Action'ga qarab to'g'ri metodga yo'naltiramiz
+			if (action === 1) {
+				// Prepare
+				result = await clickService.prepare(data)
+			} else if (action === 0) {
+				// Complete
+				console.log('⚠️  Complete request received on /prepare endpoint, routing to complete...')
+				result = await clickService.complete(data)
+			} else {
+				result = {
+					error: -3,
+					error_note: 'Action not found'
+				}
+			}
+
 			res.set({ 'Content-Type': 'application/json' }).json(result)
 		} catch (error) {
+			console.error('❌ Prepare endpoint error:', error)
 			next(error)
 		}
 	}
@@ -45,9 +67,30 @@ class ClickController {
 	async complete(req, res, next) {
 		try {
 			const data = req.body
-			const result = await clickService.complete(data)
+			const action = parseInt(data.action)
+
+			console.log('\n🔔 /complete endpoint - Action:', action)
+
+			let result
+
+			// Action'ga qarab to'g'ri metodga yo'naltiramiz
+			if (action === 0) {
+				// Complete
+				result = await clickService.complete(data)
+			} else if (action === 1) {
+				// Prepare
+				console.log('⚠️  Prepare request received on /complete endpoint, routing to prepare...')
+				result = await clickService.prepare(data)
+			} else {
+				result = {
+					error: -3,
+					error_note: 'Action not found'
+				}
+			}
+
 			res.set({ 'Content-Type': 'application/json' }).json(result)
 		} catch (error) {
+			console.error('❌ Complete endpoint error:', error)
 			next(error)
 		}
 	}
