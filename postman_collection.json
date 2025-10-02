@@ -1,0 +1,238 @@
+{
+	"info": {
+		"name": "Click.uz Payment API",
+		"description": "API endpoints for Click.uz payment integration with Telegram notifications",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Books",
+			"item": [
+				{
+					"name": "Get All Books",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9999/api/books",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "books"]
+						}
+					}
+				},
+				{
+					"name": "Create Book",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"O'zbek tili grammatikasi\",\n  \"price\": 45000,\n  \"author\": \"A.Nurmonov\",\n  \"description\": \"O'zbek tili grammatikasi bo'yicha to'liq qo'llanma\",\n  \"category\": \"Ta'lim\",\n  \"pages\": 350,\n  \"language\": \"uz\",\n  \"inStock\": true\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9999/api/books",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "books"]
+						}
+					}
+				},
+				{
+					"name": "Update Book",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 50000,\n  \"inStock\": false\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9999/api/books/:bookId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "books", ":bookId"],
+							"variable": [
+								{
+									"key": "bookId",
+									"value": "YOUR_BOOK_ID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Book",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9999/api/books/:bookId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "books", ":bookId"],
+							"variable": [
+								{
+									"key": "bookId",
+									"value": "YOUR_BOOK_ID"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"books\": [\"BOOK_ID_1\", \"BOOK_ID_2\"],\n  \"customerName\": \"Said Qodirov\",\n  \"customerEmail\": \"said@example.com\",\n  \"customerPhone\": \"+998901234567\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9999/api/orders",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Get All Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9999/api/orders?state=2&limit=20",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "orders"],
+							"query": [
+								{
+									"key": "state",
+									"value": "2",
+									"description": "0=pending, 1=preparing, 2=paid, -1=canceled"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9999/api/orders/:orderId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "orders", ":orderId"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "YOUR_ORDER_ID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9999/api/orders/statistics",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "orders", "statistics"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Click.uz Webhooks",
+			"item": [
+				{
+					"name": "Prepare Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"click_trans_id\": \"test_123456\",\n  \"service_id\": \"83510\",\n  \"merchant_trans_id\": \"order_789\",\n  \"amount\": 50000,\n  \"action\": 0,\n  \"sign_time\": 1640995200,\n  \"sign_string\": \"generated_signature\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9999/api/click/prepare",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "click", "prepare"]
+						}
+					}
+				},
+				{
+					"name": "Complete Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"click_trans_id\": \"test_123456\",\n  \"service_id\": \"83510\",\n  \"merchant_trans_id\": \"order_789\",\n  \"merchant_prepare_id\": \"prepare_456\",\n  \"amount\": 50000,\n  \"action\": 1,\n  \"sign_time\": 1640995200,\n  \"sign_string\": \"generated_signature\",\n  \"error\": 0\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9999/api/click/complete",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "9999",
+							"path": ["api", "click", "complete"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
