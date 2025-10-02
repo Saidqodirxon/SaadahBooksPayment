@@ -175,7 +175,14 @@ class ClickService {
 				prepare_id: transaction.prepare_id
 			})
 
-			// 4. prepare_id tekshirish (agar bor bo'lsa)
+			// 4. Transaction Preparing state'da bo'lishi kerak
+			// Agar Pending (0) bo'lsa, Prepare webhook hali kelmagan
+			if (transaction.state === TransactionState.Pending) {
+				console.log('❌ Transaction not prepared yet (state is Pending)')
+				return { error: ClickError.TransactionNotFound, error_note: 'Transaction not prepared' }
+			}
+
+			// 5. prepare_id tekshirish (agar bor bo'lsa)
 			if (transaction.prepare_id && prepareId) {
 				console.log('Prepare ID check:', `received=${prepareId}, expected=${transaction.prepare_id}`)
 
@@ -185,13 +192,13 @@ class ClickService {
 				}
 			}
 
-			// 5. Allaqachon to'langan bo'lsa
+			// 6. Allaqachon to'langan bo'lsa
 			if (transaction.state === TransactionState.Paid) {
 				console.log('Response: AlreadyPaid')
 				return { error: ClickError.AlreadyPaid, error_note: 'Already paid' }
 			}
 
-			// 6. Bekor qilingan bo'lsa
+			// 7. Bekor qilingan bo'lsa
 			if (transaction.state === TransactionState.Canceled) {
 				console.log('Response: TransactionCanceled')
 				return { error: ClickError.TransactionCanceled, error_note: 'Transaction canceled' }
