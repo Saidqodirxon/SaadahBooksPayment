@@ -33,15 +33,28 @@ class OrderService {
 				create_time: Date.now(),
 			})
 
+			// Click.uz to'lov URL'ini yaratish
+			const clickUrl = this.generateClickUrl(transaction._id, totalAmount)
+
 			return {
 				success: true,
-				transaction,
-				totalAmount,
+				orderId: transaction._id,
+				amount: totalAmount,
+				click_url: clickUrl,
 			}
 		} catch (error) {
 			console.error('Buyurtma yaratishda xatolik:', error)
 			throw error
 		}
+	}
+
+	// Click.uz to'lov URL'ini yaratish
+	generateClickUrl(orderId, amount) {
+		const serviceId = process.env.CLICK_SERVICE_ID || '83510'
+		const merchantId = process.env.CLICK_MERCHANT_ID || '46304'
+		const returnUrl = process.env.CLIENT_URL || 'https://saadahbooks.uz'
+
+		return `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${merchantId}&amount=${amount}&transaction_param=${orderId}&return_url=${returnUrl}/payment/success`
 	}
 
 	// Buyurtma ma'lumotlarini olish
